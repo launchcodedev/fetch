@@ -1,0 +1,59 @@
+{
+  "name": "@servall/fetch",
+  "version": "0.1.0-dev",
+  "description": "Wrapper for DOM fetch",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "UNLICENSED",
+  "author": {
+    "name": "Servall Development",
+    "email": "admin@servalldev.com",
+    "url": "https://www.servalldev.com"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "lint": "dev lint",
+    "fix": "dev lint --fix",
+    "test": "jest",
+    "prepublishOnly": "yarn clean && yarn build && chmod +x ./dist/index.js"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "8",
+    "@servall/commitlint": "1",
+    "@servall/dev": "0.0.10-beta.13",
+    "@servall/eslint-config": "0.1",
+    "@servall/jest": "0.1",
+    "@servall/prettier": "0.1",
+    "@servall/ts": "0.2",
+    "@servall/tsconfig": "0.1",
+    "@types/jest": "24",
+    "@types/koa": "2",
+    "@types/node-fetch": "2",
+    "eslint": "5",
+    "husky": "3",
+    "jest": "24",
+    "node-fetch": "2",
+    "typescript": "3"
+  },
+  "dependencies": {
+    "query-string": "6"
+  },
+  "prettier": "@servall/prettier",
+  "eslintConfig": {
+    "extends": "@servall"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "commitlint": {
+    "extends": [
+      "@servall/commitlint"
+    ]
+  },
+  "jest": {
+    "preset": "@servall/jest"
+  }
+}
