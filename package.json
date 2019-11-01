@@ -16,7 +16,7 @@
     "lint": "dev lint",
     "fix": "dev lint --fix",
     "test": "jest",
-    "prepublishOnly": "yarn clean && yarn build && chmod +x ./dist/index.js"
+    "prepublishOnly": "yarn clean && yarn build"
   },
   "devDependencies": {
     "@commitlint/cli": "8",
@@ -43,6 +43,9 @@
   "eslintConfig": {
     "extends": "@servall"
   },
+  "jest": {
+    "preset": "@servall/jest"
+  },
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
@@ -52,8 +55,5 @@
     "extends": [
       "@servall/commitlint"
     ]
-  },
-  "jest": {
-    "preset": "@servall/jest"
   }
 }
