@@ -11,12 +11,7 @@ Use:
 import { HttpMethod, api, apiCall } from '@lcdev/fetch';
 
 // re-use this any time you want to make a call to this api
-const myCoreApi = api('https://base-url.com')
-  // add transforms like this - lets you intercept any response
-  .onResponse(callback)
-  .onJsonResponse(callback)
-  // attach bearer token header to all requests
-  .withBearerToken(authManager);
+const myCoreApi = api('https://base-url.com');
 
 // calling .then or `await` triggers the request
 await myCoreApi.get('/endpoint')
@@ -25,8 +20,26 @@ await myCoreApi.get('/endpoint')
   .withQuery({ baz: 'bat' })
   // chain .json if you know the response is json
   .json<MyReturnType>();
+
+// don't need to define a base URL up front for one-offs
+await apiCall('https://base-url.com/endpoint').json<MyReturnType>();
 ```
 
-Requests start on await/then. Chain to add pieces to the request. 'Api's can
-have global 'transforms' which can do things with `withBearerToken`, `onResponse`,
-etc.
+Requests start on await/then. Chain to add data to the request. This is just a thin way to make `fetch` calls.
+
+'Api's can have global 'transforms' which can do things with `withBearerToken`, `onResponse`, etc.
+The common use is for authorization tokens.
+
+```typescript
+// let's assume that this is something that manages the current token
+const authManager = {
+  token: '...',
+};
+
+const myCoreApi = api('https://base-url.com')
+  // whenever a request is made, this gets `authManager.token` and attachs it to the Authorization header
+  .withBearerToken(authManager);
+```
+
+You can add little callbacks to `myCoreApi` using `onResponse` or `onJsonResponse`. You might
+do so to watch for 401 responses, or maybe just for logging.
