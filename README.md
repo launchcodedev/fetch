@@ -1,8 +1,11 @@
 # Fetch
 Tiny wrapper around DOM fetch for common API wrappings.
 
+[![](https://shields.servallapps.com/npm/v/@lcdev/fetch.svg?registry_uri=https%3A%2F%2Fnpm.servalldatasystems.com)](https://npm.servalldatasystems.com/#/detail/@lcdev/fetch)
+
 ```bash
-yarn add @lcdev/fetch@0.1
+# replace VERSION below with the most recent major version above (eg. 0.5.1 -> 0.5, 1.2.3 -> 1)
+yarn add @lcdev/fetch@VERSION
 ```
 
 Use:
