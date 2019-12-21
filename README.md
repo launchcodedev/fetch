@@ -43,3 +43,20 @@ const myCoreApi = api('https://base-url.com')
 
 You can add little callbacks to `myCoreApi` using `onResponse` or `onJsonResponse`. You might
 do so to watch for 401 responses, or maybe just for logging.
+
+Chainable methods for API calls:
+- `withBody(object, isJson?: boolean)`: adds json or other type of request body
+- `withQuery(object)`: adds query parameters
+- `withBearerToken(BearerToken)`: adds Authorization: Bearer {token} header
+- `withContentType(string)`: changes default content type header
+- `withHeaders(Headers)`: adds headers to request
+- `withHeader(key, value)`: adds a header to the request
+- `expectStatus(number)`: throw error is response status isn't the expect one
+- `build()`: constructs options that can be passed into `fetch`
+- `json<T>()`: calls fetch and parses response as JSON
+- `jsonAndResponse<T>()`: calls fetch and parses response as JSON, along with full Response
+- `blob<T>()`: calls fetch and parses response as a blob
+- `blobAndResponse<T>()`: calls fetch and parses response as a blob, along with full Response
+
+A base API itself can be called with `.get`, `.post`, etc. You can change the base URL if required
+with `changeBaseURL(path)`, though be warned that every request from then on will then be based on that.
