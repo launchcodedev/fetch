@@ -55,9 +55,11 @@ test('api call builder', () => {
   expect(
     api('//base')
       .get('/api')
-      .withHeaders(new Headers({
-        Fake: 'stuff',
-      }) as any) // node-fetch incompatibility
+      .withHeaders(
+        new Headers({
+          Fake: 'stuff',
+        }) as any,
+      ) // node-fetch incompatibility
       .build(),
   ).toEqual({
     method: 'GET',

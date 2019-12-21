@@ -1,5 +1,5 @@
 import { stringify as stringifyQuery } from 'query-string';
-import { Json } from '@servall/ts';
+import { Json } from '@lcdev/ts';
 
 export enum HttpMethod {
   GET = 'GET',
@@ -150,7 +150,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   }
 
   build() {
-    const headers = this.headers || new Headers();
+    const headers = this.headers ?? new Headers();
 
     if (this.bearerToken && this.bearerToken.token) {
       headers.set('authorization', `Bearer ${this.bearerToken.token}`);

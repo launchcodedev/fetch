@@ -2,13 +2,13 @@
 Tiny wrapper around DOM fetch for common API wrappings.
 
 ```bash
-yarn add @servall/fetch@0.1
+yarn add @lcdev/fetch@0.1
 ```
 
 Use:
 
 ```typescript
-import { HttpMethod, api, apiCall } from '@servall/fetch';
+import { HttpMethod, api, apiCall } from '@lcdev/fetch';
 
 // re-use this any time you want to make a call to this api
 const myCoreApi = api('https://base-url.com')
