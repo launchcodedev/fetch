@@ -15,6 +15,10 @@ export interface Query {
   [key: string]: string | number | boolean | undefined | null;
 }
 
+export interface SerializationOptions {
+  stripEmptyStrings?: boolean;
+}
+
 export interface BearerToken {
   token?: string;
 }
@@ -31,7 +35,7 @@ export interface ApiCall<Method extends HttpMethod> extends Promise<Response> {
   readonly headers?: Headers;
   readonly body?: Json | BodyInit;
 
-  withQuery(query: Query): ApiCall<Method>;
+  withQuery(query: Query, options?: SerializationOptions): ApiCall<Method>;
   withBearerToken(token: BearerToken): ApiCall<Method>;
   withContentType(contentType: string): ApiCall<Method>;
   withHeaders(headers: Headers): ApiCall<Method>;
@@ -75,6 +79,7 @@ export interface Api {
 
 class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   private consumed = false;
+  private queryOptions?: SerializationOptions;
   private onResponseCbs: OnResponse[] = [];
   private onJsonResponseCbs: OnJsonResponse[] = [];
 
@@ -99,8 +104,9 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     }, this);
   }
 
-  withQuery(query: Query) {
+  withQuery(query: Query, options?: SerializationOptions) {
     this.query = query;
+    this.queryOptions = options;
     return this;
   }
 
@@ -160,7 +166,15 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
       headers.set('content-type', this.contentType);
     }
 
-    const path = this.query ? `${this.path}?${stringifyQuery(this.query)}` : this.path;
+    let path: string;
+
+    if (this.query) {
+      path = `${this.path}?${stringifyQuery(
+        applySerializationOptions(this.query, this.queryOptions),
+      )}`;
+    } else {
+      path = this.path;
+    }
 
     let body: BodyInit | undefined;
 
@@ -289,3 +303,17 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
 export const apiCall = <M extends HttpMethod>(path: string, method: M): ApiCall<M> => {
   return new ApiCallImpl(path, method);
 };
+
+function applySerializationOptions(obj: any, options: SerializationOptions = {}) {
+  const output = { ...obj };
+
+  if (options?.stripEmptyStrings) {
+    for (const [key, val] of Object.entries(output)) {
+      if (val === '') {
+        delete output[key];
+      }
+    }
+  }
+
+  return output;
+}
