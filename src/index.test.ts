@@ -231,3 +231,23 @@ test('change api base url', () => {
     path: 'https://my-other-api/api',
   });
 });
+
+describe('serialization options', () => {
+  test('strip empty strings', () => {
+    expect(
+      apiCall('/foo', HttpMethod.GET)
+        .withQuery({ bar: 1, baz: '' }, {})
+        .build(),
+    ).toMatchObject({
+      path: '/foo?bar=1&baz=',
+    });
+
+    expect(
+      apiCall('/foo', HttpMethod.GET)
+        .withQuery({ bar: 1, baz: '' }, { stripEmptyStrings: true })
+        .build(),
+    ).toMatchObject({
+      path: '/foo?bar=1',
+    });
+  });
+});
