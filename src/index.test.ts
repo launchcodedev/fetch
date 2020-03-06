@@ -249,5 +249,21 @@ describe('serialization options', () => {
     ).toMatchObject({
       path: '/foo?bar=1',
     });
+
+    expect(
+      apiCall('/foo', HttpMethod.GET)
+        .withBody({ bar: 1, baz: '' }, true, { stripEmptyStrings: true })
+        .build(),
+    ).toMatchObject({
+      body: JSON.stringify({ bar: 1 }),
+    });
+
+    expect(
+      apiCall('/foo', HttpMethod.GET)
+        .withBody({ bar: 1, baz: '' })
+        .build(),
+    ).toMatchObject({
+      body: JSON.stringify({ bar: 1, baz: '' }),
+    });
   });
 });
