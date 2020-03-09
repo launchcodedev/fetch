@@ -40,7 +40,11 @@ export interface ApiCall<Method extends HttpMethod> extends Promise<Response> {
   withContentType(contentType: string): ApiCall<Method>;
   withHeaders(headers: Headers): ApiCall<Method>;
   withHeader(name: string, value: string): ApiCall<Method>;
-  withBody<B extends Json | BodyInit>(body: B, json?: boolean): ApiCall<Method>;
+  withBody<B extends Json | BodyInit>(
+    body: B,
+    json?: boolean,
+    options?: SerializationOptions,
+  ): ApiCall<Method>;
 
   expectStatus(code: number): ApiCall<Method>;
 
@@ -80,6 +84,7 @@ export interface Api {
 class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   private consumed = false;
   private queryOptions?: SerializationOptions;
+  private bodyOptions?: SerializationOptions;
   private onResponseCbs: OnResponse[] = [];
   private onJsonResponseCbs: OnJsonResponse[] = [];
 
@@ -131,8 +136,9 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     return this;
   }
 
-  withBody<B extends Json | BodyInit>(body: B, json = true) {
+  withBody<B extends Json | BodyInit>(body: B, json = true, options?: SerializationOptions) {
     this.body = body;
+    this.bodyOptions = options;
     if (json) return this.withContentType('application/json');
     return this;
   }
@@ -179,7 +185,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     let body: BodyInit | undefined;
 
     if (this.body && this.contentType === 'application/json') {
-      body = JSON.stringify(this.body);
+      body = JSON.stringify(applySerializationOptions(this.body, this.bodyOptions));
     } else {
       body = this.body as BodyInit | undefined;
     }
