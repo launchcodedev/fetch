@@ -18,8 +18,8 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "lint": "dev lint",
-    "fix": "dev lint --fix",
+    "lint": "eslint --ext .ts,.tsx src",
+    "fix": "eslint --ext .ts,.tsx src --fix",
     "test": "jest",
     "prepublishOnly": "yarn clean && yarn build"
   },
@@ -30,7 +30,6 @@
     "@lcdev/jest": "0.1",
     "@lcdev/prettier": "0.1",
     "@lcdev/tsconfig": "0.1",
-    "@servall/dev": "0.0.17-eslintupgraded",
     "@types/jest": "24",
     "@types/koa": "2",
     "@types/node-fetch": "2",
