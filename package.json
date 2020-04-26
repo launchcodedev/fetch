@@ -2,14 +2,19 @@
   "name": "@lcdev/fetch",
   "version": "0.1.3",
   "description": "Wrapper for DOM fetch",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "license": "UNLICENSED",
   "author": {
     "name": "Launchcode",
     "email": "admin@lc.dev",
     "url": "https://lc.dev"
   },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist",
+    "!*.tsbuildinfo",
+    "!*.test.*"
+  ],
   "scripts": {
     "build": "tsc -b",
     "clean": "rm -rf dist *.tsbuildinfo",
