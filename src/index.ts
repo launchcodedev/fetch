@@ -311,6 +311,10 @@ export const apiCall = <M extends HttpMethod>(path: string, method: M): ApiCall<
 };
 
 function applySerializationOptions(obj: any, options: SerializationOptions = {}) {
+  if (typeof obj !== 'object' || Array.isArray(obj)) {
+    return obj;
+  }
+
   const output = { ...obj };
 
   if (options?.stripEmptyStrings) {

@@ -265,5 +265,13 @@ describe('serialization options', () => {
     ).toMatchObject({
       body: JSON.stringify({ bar: 1, baz: '' }),
     });
+
+    expect(
+      apiCall('/foo', HttpMethod.POST)
+        .withBody([1, 2, 3])
+        .build(),
+    ).toMatchObject({
+      body: JSON.stringify([1, 2, 3]),
+    });
   });
 });
