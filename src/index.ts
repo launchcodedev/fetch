@@ -74,6 +74,7 @@ export interface Api {
 
   withTransform<M extends HttpMethod>(t: ApiCallTransform<M>): Api;
   withBearerToken(token: BearerToken): Api;
+  withBaseURL(path: string): Api;
 
   onResponse(cb: OnResponse): Api;
   onJsonResponse(cb: OnJsonResponse): Api;
@@ -279,6 +280,10 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
     return withTransform(c => c.withBearerToken(token));
   };
 
+  const withBaseURL = (path: string) => {
+    return api(buildPath(baseURL, path), transforms);
+  };
+
   const onResponse = (cb: OnResponse) => {
     return withTransform(c => c.onResponse(cb));
   };
@@ -291,6 +296,7 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
     call,
     withTransform,
     withBearerToken,
+    withBaseURL,
     onResponse,
     onJsonResponse,
     get: path => call(path, HttpMethod.GET),

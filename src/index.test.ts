@@ -9,122 +9,182 @@ Object.assign(global, {
   Response,
 });
 
-test('buildPath', () => {
-  expect(buildPath('https://servalldev.com', 'api-call')).toBe('https://servalldev.com/api-call');
-  expect(buildPath('https://servalldev.com/', '/api-call')).toBe('https://servalldev.com/api-call');
-  expect(buildPath('/api-call')).toBe('/api-call');
-  expect(buildPath('//servalldev.com', '/call')).toBe('//servalldev.com/call');
-});
-
-test('api call build', () => {
-  expect(
-    api('//base')
-      .get('/api')
-      .build(),
-  ).toEqual({
-    method: 'GET',
-    path: '//base/api',
-    headers: new Headers(),
-  });
-
-  expect(
-    api('//base')
-      .post('/api')
-      .build(),
-  ).toEqual({
-    method: 'POST',
-    path: '//base/api',
-    headers: new Headers(),
+describe('buildings paths', () => {
+  test('basic additions', () => {
+    expect(buildPath('https://servalldev.com', 'api-call')).toBe('https://servalldev.com/api-call');
+    expect(buildPath('https://servalldev.com/', '/api-call')).toBe(
+      'https://servalldev.com/api-call',
+    );
+    expect(buildPath('https://servalldev.com/api', '/call')).toBe(
+      'https://servalldev.com/api/call',
+    );
+    expect(buildPath('//servalldev.com', '/call')).toBe('//servalldev.com/call');
+    expect(buildPath('/api-call')).toBe('/api-call');
   });
 });
 
-test('api call builder', () => {
-  expect(
-    api('//base')
-      .get('/api')
-      .withContentType('fake/mime')
-      .build(),
-  ).toEqual({
-    method: 'GET',
-    path: '//base/api',
-    headers: new Headers({
-      'content-type': 'fake/mime',
-    }),
-  });
+describe('building api calls', () => {
+  test('api call build', () => {
+    expect(
+      api('//base')
+        .get('/api')
+        .build(),
+    ).toEqual({
+      method: 'GET',
+      path: '//base/api',
+      headers: new Headers(),
+    });
 
-  expect(
-    api('//base')
-      .get('/api')
-      .withHeaders(
-        new Headers({
-          Fake: 'stuff',
-        }) as any,
-      ) // node-fetch incompatibility
-      .build(),
-  ).toEqual({
-    method: 'GET',
-    path: '//base/api',
-    headers: new Headers({
-      fake: 'stuff',
-    }),
-  });
+    expect(
+      api('//base')
+        .post('/api')
+        .build(),
+    ).toEqual({
+      method: 'POST',
+      path: '//base/api',
+      headers: new Headers(),
+    });
 
-  expect(
-    api('//base')
-      .get('/api')
-      .withBody({
-        foo: 'bar',
-      })
-      .build(),
-  ).toEqual({
-    method: 'GET',
-    path: '//base/api',
-    headers: new Headers({
-      'content-type': 'application/json',
-    }),
-    body: '{"foo":"bar"}',
+    expect(
+      api('//base')
+        .get('/api')
+        .withContentType('fake/mime')
+        .build(),
+    ).toEqual({
+      method: 'GET',
+      path: '//base/api',
+      headers: new Headers({
+        'content-type': 'fake/mime',
+      }),
+    });
+
+    expect(
+      api('//base')
+        .get('/api')
+        .withHeaders(
+          new Headers({
+            Fake: 'stuff',
+          }) as any,
+        )
+        .build(),
+    ).toEqual({
+      method: 'GET',
+      path: '//base/api',
+      headers: new Headers({
+        fake: 'stuff',
+      }),
+    });
+
+    expect(
+      api('//base')
+        .get('/api')
+        .withBody({
+          foo: 'bar',
+        })
+        .build(),
+    ).toEqual({
+      method: 'GET',
+      path: '//base/api',
+      headers: new Headers({
+        'content-type': 'application/json',
+      }),
+      body: JSON.stringify({ foo: 'bar' }),
+    });
   });
 });
 
-test('api transforms', () => {
-  const test = api('//foo').withBearerToken({ token: 'auth-token' });
+describe('api transforms', () => {
+  test('api transforms', () => {
+    const test = api('//foo').withBearerToken({ token: 'auth-token' });
 
-  expect(test.get('api').build()).toEqual({
-    method: 'GET',
-    path: '//foo/api',
-    headers: new Headers({
-      authorization: 'Bearer auth-token',
-    }),
+    expect(test.get('api').build()).toEqual({
+      method: 'GET',
+      path: '//foo/api',
+      headers: new Headers({
+        authorization: 'Bearer auth-token',
+      }),
+    });
+
+    const test2 = api('//foo').withTransform(c => c.withQuery({ e: true }));
+
+    expect(test2.get('api').build()).toEqual({
+      method: 'GET',
+      path: '//foo/api?e=true',
+      headers: new Headers(),
+    });
   });
 
-  const test2 = api('//foo').withTransform(c => c.withQuery({ e: true }));
+  test('method specific transform', () => {
+    const test3 = api('//foo').withTransform([HttpMethod.PUT, c => c.withQuery({ e: true })]);
 
-  expect(test2.get('api').build()).toEqual({
-    method: 'GET',
-    path: '//foo/api?e=true',
-    headers: new Headers(),
+    expect(test3.get('api').build()).toEqual({
+      method: 'GET',
+      path: '//foo/api',
+      headers: new Headers(),
+    });
+
+    expect(test3.put('api').build()).toEqual({
+      method: 'PUT',
+      path: '//foo/api?e=true',
+      headers: new Headers(),
+    });
   });
 
-  const test3 = api('//foo').withTransform([HttpMethod.PUT, c => c.withQuery({ e: true })]);
+  test('with bearer', () => {
+    const test4 = api('//foo').withBearerToken({ token: undefined });
 
-  expect(test3.get('api').build()).toEqual({
-    method: 'GET',
-    path: '//foo/api',
-    headers: new Headers(),
+    expect(test4.get('api').build()).toEqual({
+      method: 'GET',
+      path: '//foo/api',
+      headers: new Headers({}),
+    });
   });
 
-  expect(test3.put('api').build()).toEqual({
-    method: 'PUT',
-    path: '//foo/api?e=true',
-    headers: new Headers(),
+  test('with base url', () => {
+    const test5 = api('//foo').withBaseURL('/api/v1');
+
+    expect(test5.get('bar').build()).toEqual({
+      method: 'GET',
+      path: '//foo/api/v1/bar',
+      headers: new Headers({}),
+    });
   });
 
-  const test4 = api('//foo').withBearerToken({ token: undefined });
+  test('with base url and transfomr', () => {
+    const test = api('//foo').withBearerToken({ token: 'token' });
+    const test1 = test.withBaseURL('/api/v1');
 
-  expect(test4.get('api').build()).toEqual({
-    method: 'GET',
-    path: '//foo/api',
-    headers: new Headers({}),
+    expect(test.get('bar').build()).toEqual({
+      method: 'GET',
+      path: '//foo/bar',
+      headers: new Headers({
+        authorization: 'Bearer token',
+      }),
+    });
+
+    expect(test1.get('bar').build()).toEqual({
+      method: 'GET',
+      path: '//foo/api/v1/bar',
+      headers: new Headers({
+        authorization: 'Bearer token',
+      }),
+    });
+  });
+
+  test('change api base url', () => {
+    const myApi = api('https://my-api');
+
+    expect(myApi.get('/api').build()).toMatchObject({
+      method: 'GET',
+      path: 'https://my-api/api',
+    });
+
+    myApi.changeBaseURL('https://my-other-api/');
+
+    expect(myApi.get('/api').build()).toMatchObject({
+      method: 'GET',
+      path: 'https://my-other-api/api',
+    });
   });
 });
 
@@ -214,22 +274,6 @@ test('expect status', async () => {
   ).resolves.toBeTruthy();
 
   server.close();
-});
-
-test('change api base url', () => {
-  const myApi = api('https://my-api');
-
-  expect(myApi.get('/api').build()).toMatchObject({
-    method: 'GET',
-    path: 'https://my-api/api',
-  });
-
-  myApi.changeBaseURL('https://my-other-api/');
-
-  expect(myApi.get('/api').build()).toMatchObject({
-    method: 'GET',
-    path: 'https://my-other-api/api',
-  });
 });
 
 describe('serialization options', () => {
