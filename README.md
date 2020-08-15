@@ -4,7 +4,6 @@ Tiny wrapper around DOM fetch for common API wrappings.
 [![](https://shields.servallapps.com/npm/v/@lcdev/fetch.svg?registry_uri=https%3A%2F%2Fnpm.servalldatasystems.com)](https://npm.servalldatasystems.com/#/detail/@lcdev/fetch)
 
 ```bash
-# replace VERSION below with the most recent major version above (eg. 0.5.1 -> 0.5, 1.2.3 -> 1)
 yarn add @lcdev/fetch@VERSION
 ```
 
@@ -12,6 +11,9 @@ Use:
 
 ```typescript
 import { HttpMethod, api, apiCall } from '@lcdev/fetch';
+
+// one-off requests are easy
+await apiCall('https://base-url.com/endpoint').json<MyReturnType>();
 
 // re-use this any time you want to make a call to this api
 const myCoreApi = api('https://base-url.com');
@@ -23,9 +25,6 @@ await myCoreApi.get('/endpoint')
   .withQuery({ baz: 'bat' })
   // chain .json if you know the response is json
   .json<MyReturnType>();
-
-// don't need to define a base URL up front for one-offs
-await apiCall('https://base-url.com/endpoint').json<MyReturnType>();
 ```
 
 Requests start on await/then. Chain to add data to the request. This is just a thin way to make `fetch` calls.
@@ -63,3 +62,10 @@ Chainable methods for API calls:
 
 A base API itself can be called with `.get`, `.post`, etc. You can change the base URL if required
 with `changeBaseURL(path)`, though be warned that every request from then on will then be based on that.
+
+## NodeJS Support
+Just polyfill `fetch`, and this package will work. Install `cross-fetch` package and add the following to your main file.
+
+```typescript
+import 'cross-fetch/polyfill';
+```

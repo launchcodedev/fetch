@@ -1,13 +1,7 @@
 import * as http from 'http';
-import fetch, { Headers, Request, Response } from 'node-fetch';
 import { HttpMethod, buildPath, api, apiCall } from './index';
 
-Object.assign(global, {
-  fetch,
-  Headers,
-  Request,
-  Response,
-});
+import 'cross-fetch/polyfill';
 
 describe('buildings paths', () => {
   test('basic additions', () => {
