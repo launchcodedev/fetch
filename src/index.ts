@@ -47,6 +47,7 @@ export interface ApiCall<Method extends HttpMethod> extends Promise<Response> {
   ): ApiCall<Method>;
 
   expectStatus(code: number): ApiCall<Method>;
+  expectSuccessStatus(): ApiCall<Method>;
 
   onResponse(cb: OnResponse): ApiCall<Method>;
   onJsonResponse(cb: OnJsonResponse): ApiCall<Method>;
@@ -147,7 +148,19 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   expectStatus(code: number) {
     return this.onResponse(res => {
       if (res.status !== code) {
-        throw new Error(`Expected ${code} response, got ${res.status}`);
+        throw Object.assign(new Error(`Expected ${code} response, got ${res.status}`), {
+          response: res,
+        });
+      }
+    });
+  }
+
+  expectSuccessStatus() {
+    return this.onResponse(res => {
+      if (res.status < 200 || res.status >= 300) {
+        throw Object.assign(new Error(`Expected a successful response, got ${res.status}`), {
+          response: res,
+        });
       }
     });
   }

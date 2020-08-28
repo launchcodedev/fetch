@@ -270,6 +270,23 @@ test('expect status', async () => {
   server.close();
 });
 
+test('expect successful status', async () => {
+  const server = http
+    .createServer((_, res) => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Something went wrong' }));
+    })
+    .listen(0);
+
+  const { port } = server.address() as { port: number };
+
+  await expect(
+    apiCall(`http://localhost:${port}`, HttpMethod.GET).expectSuccessStatus(),
+  ).rejects.toThrow();
+
+  server.close();
+});
+
 describe('serialization options', () => {
   test('strip empty strings', () => {
     expect(
