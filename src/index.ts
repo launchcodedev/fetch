@@ -1,6 +1,8 @@
 import { stringify as stringifyQuery } from 'query-string';
 import { Json } from '@lcdev/ts';
 
+import 'isomorphic-form-data';
+
 export enum HttpMethod {
   GET = 'GET',
   POST = 'POST',
@@ -36,15 +38,21 @@ export interface ApiCall<Method extends HttpMethod> extends Promise<Response> {
   readonly body?: Json | BodyInit;
 
   withQuery(query: Query, options?: SerializationOptions): ApiCall<Method>;
-  withBearerToken(token: BearerToken): ApiCall<Method>;
-  withContentType(contentType: string): ApiCall<Method>;
+
   withHeaders(headers: Headers): ApiCall<Method>;
   withHeader(name: string, value: string): ApiCall<Method>;
+  withContentType(contentType: string): ApiCall<Method>;
+  withBearerToken(token: BearerToken): ApiCall<Method>;
+
   withBody<B extends Json | BodyInit>(
     body: B,
     json?: boolean,
     options?: SerializationOptions,
   ): ApiCall<Method>;
+
+  withJsonBody<B extends Json>(body: B, options?: SerializationOptions): ApiCall<Method>;
+  withFormDataBody<B extends Query>(data: B, options?: SerializationOptions): ApiCall<Method>;
+  withURLEncodedBody<B extends Query>(data: B, options?: SerializationOptions): ApiCall<Method>;
 
   expectStatus(code: number): ApiCall<Method>;
   expectSuccessStatus(): ApiCall<Method>;
@@ -143,6 +151,30 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     this.bodyOptions = options;
     if (json) return this.withContentType('application/json');
     return this;
+  }
+
+  withJsonBody<B extends Json>(body: B, options?: SerializationOptions) {
+    return this.withBody(body, true, options);
+  }
+
+  withFormDataBody<B extends Query>(data: B, options?: SerializationOptions) {
+    const body = new FormData();
+
+    for (const [k, v] of Object.entries(data)) {
+      if (v) body.append(k, `${v}`);
+    }
+
+    return this.withBody(body, false, options);
+  }
+
+  withURLEncodedBody<B extends Query>(data: B, options?: SerializationOptions) {
+    const body = new URLSearchParams();
+
+    for (const [k, v] of Object.entries(data)) {
+      if (v) body.append(k, `${v}`);
+    }
+
+    return this.withContentType('application/x-www-form-urlencoded').withBody(body, false, options);
   }
 
   expectStatus(code: number) {

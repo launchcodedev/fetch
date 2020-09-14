@@ -329,4 +329,29 @@ describe('serialization options', () => {
       body: JSON.stringify([1, 2, 3]),
     });
   });
+
+  test('form data', () => {
+    expect(
+      apiCall('/', HttpMethod.POST)
+        .withFormDataBody({ foo: 'bar' })
+        .build(),
+    ).toMatchObject({
+      path: '/',
+      body: expect.any(FormData),
+    });
+  });
+
+  test('url encoded', () => {
+    expect(
+      apiCall('/', HttpMethod.POST)
+        .withURLEncodedBody({ foo: 'bar' })
+        .build(),
+    ).toMatchObject({
+      path: '/',
+      headers: new Headers({
+        'content-type': 'application/x-www-form-urlencoded',
+      }),
+      body: expect.any(URLSearchParams),
+    });
+  });
 });
