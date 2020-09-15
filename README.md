@@ -1,5 +1,5 @@
 # Fetch
-Tiny wrapper around DOM fetch for common API wrappings.
+Tiny wrapper around DOM fetch for common API wrappings. Isomorphic (supports browsers and Node.js), if `fetch` is available or polyfilled.
 
 [![](https://shields.servallapps.com/npm/v/@lcdev/fetch.svg?registry_uri=https%3A%2F%2Fnpm.servalldatasystems.com)](https://npm.servalldatasystems.com/#/detail/@lcdev/fetch)
 
@@ -7,64 +7,101 @@ Tiny wrapper around DOM fetch for common API wrappings.
 yarn add @lcdev/fetch@VERSION
 ```
 
-Use:
+Features:
+- Easy to use builder-style API
+- Quick JSON, blob and text parsing options
+- Shareable builders for common options (authorization headers, onResponse hooks, etc.)
+- No magic - call `build()` and pass to fetch if you want
+- TypeScript friendly
+- Tiny footprint (2kb)
+
+If you are looking for something not available here, try [ky-universal](https://github.com/sindresorhus/ky-universal) or [axios](https://github.com/axios/axios).
+
+There are two main functions exported by this package:
+
+1. The `apiCall` function, which is used for creating a one-off fetch request
+2. The `api` function, which creates a shared builder for many fetch requests
+
+### `apiCall`
+The simplest function is `apiCall`, which sets up a fetch request.
 
 ```typescript
-import { HttpMethod, api, apiCall } from '@lcdev/fetch';
+import { HttpMethod, apiCall } from '@lcdev/fetch';
 
-// one-off requests are easy
-await apiCall('https://base-url.com/endpoint').json<MyReturnType>();
-
-// re-use this any time you want to make a call to this api
-const myCoreApi = api('https://base-url.com');
-
-// calling .then or `await` triggers the request
-await myCoreApi.get('/endpoint')
-  // chainable interface
-  .withBody({ foo: 'bar' })
-  .withQuery({ baz: 'bat' })
-  // chain .json if you know the response is json
-  .json<MyReturnType>();
+await apiCall('https://base-url.com/endpoint', HttpMethod.GET).json<TheResponseObject>();
 ```
 
-Requests start on await/then. Chain to add data to the request. This is just a thin way to make `fetch` calls.
-
-'Api's can have global 'transforms' which can do things with `withBearerToken`, `onResponse`, etc.
-The common use is for authorization tokens.
+This can be shortened by using the http method aliases exported by this package.
 
 ```typescript
-// let's assume that this is something that manages the current token
-const authManager = {
-  token: '...',
-};
+import { get } from '@lcdev/fetch';
 
-const myCoreApi = api('https://base-url.com')
-  // whenever a request is made, this gets `authManager.token` and attachs it to the Authorization header
-  .withBearerToken(authManager);
+await get('https://base-url.com/endpoint').json<TheResponseObject>();
 ```
 
-You can add little callbacks to `myCoreApi` using `onResponse` or `onJsonResponse`. You might
-do so to watch for 401 responses, or maybe just for logging.
+There are `get`, `post`, `put`, `patch`, and `remove` aliases.
 
-Chainable methods for API calls:
-- `withBody(object, isJson?: boolean)`: adds json or other type of request body
-- `withQuery(object)`: adds query parameters
-- `withBearerToken(BearerToken)`: adds Authorization: Bearer {token} header
-- `withContentType(string)`: changes default content type header
+With a `ApiCall` builder (the object returned by `apiCall`), we can chain many options for the request.
+
+- `withQuery(object, options?: SerializationOptions)`: adds query parameters, stringifying the object with `query-string`
 - `withHeaders(Headers)`: adds headers to request
-- `withHeader(key, value)`: adds a header to the request
-- `expectStatus(number)`: throw error is response status isn't the expect one
-- `build()`: constructs options that can be passed into `fetch`
+- `withHeader(key, value)`: adds a single header to the request
+- `withContentType(string)`: changes the content-type header
+- `withBearerToken(object: { token?: string })`: adds `Authorization: Bearer {token}` header
+- `withBody(object, isJson?: boolean, options?: SerializationOptions)`: adds a request body
+- `withJsonBody(object, options?: SerializationOptions)`: adds JSON request body
+- `withFormDataBody(FormData, options?: SerializationOptions)`: adds form-data request body
+- `withURLEncodedBody(object, options?: SerializationOptions)`: adds 'application/x-www-form-urlencoded' request body
+- `expectStatus(number)`: throw an error if the response status isn't the expected one
+- `expectSuccessStatus()`: throw an error if the response status isn't in 200 range
+- `onResponse(callback)`: calls your function whenever responses are received
+- `onJsonResponse(callback)`: calls your function whenever JSON responses are received
+- `build()`: constructs options that can be passed into `fetch` directly
 - `json<T>()`: calls fetch and parses response as JSON
-- `jsonAndResponse<T>()`: calls fetch and parses response as JSON, along with full Response
+- `jsonAndResponse<T>()`: calls fetch and parses response as JSON, along with the full Response object
 - `blob<T>()`: calls fetch and parses response as a blob
-- `blobAndResponse<T>()`: calls fetch and parses response as a blob, along with full Response
+- `blobAndResponse<T>()`: calls fetch and parses response as a blob, along with the full Response object
+- `text<T>()`: calls fetch and parses response as text
+- `textAndResponse<T>()`: calls fetch and parses response as text, along with the full Response object
 
-A base API itself can be called with `.get`, `.post`, etc. You can change the base URL if required
-with `changeBaseURL(path)`, though be warned that every request from then on will then be based on that.
+Because we expose `build`, there is always an escape hatch if you need something non-standard.
+
+Note that fetch calls are **lazy** - meaning that nothing will run until you call `.then` or `await` it.
+
+### `api`
+Most of the time, we make web apps that call APIs many times in different ways (endpoints, authorization, etc.).
+This package provides a way to share configuration easily between all calls, without being "global".
+
+```typescript
+import { api } from '@lcdev/fetch';
+
+const myBackend = api('https://base-url.com')
+  .withBearerToken({ token: '...' })
+  .onResponse((res) => {
+    if (res.status === 401) logout();
+  });
+
+// we can re-use myBackend where we want to
+// you might put myBackend in a React Context, or inject it into state management
+await myBackend.get('/endpoint').json<TheResponseObject>();
+await myBackend.post('/endpoint').withJsonBody({ foo: 'bar' }).json<TheOtherResponse>();
+```
+
+Here, `myBackend` is an `Api` object, which exposes ways to create `ApiCall`s (like above).
+You can perform the same builder functions on these as with `apiCall`.
+
+You can add little callbacks to `myBackend` using `onResponse` or `onJsonResponse`. You might
+do this for logging, for business logic, etc.
+
+You can change the base URL if required with `changeBaseURL(path)`, though be warned that 
+every request from then on will then be based on that.
 
 ## NodeJS Support
 Just polyfill `fetch`, and this package will work. Install `cross-fetch` package and add the following to your main file.
+
+```bash
+yarn add cross-fetch@3
+```
 
 ```typescript
 import 'cross-fetch/polyfill';

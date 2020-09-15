@@ -65,6 +65,8 @@ export interface ApiCall<Method extends HttpMethod> extends Promise<Response> {
   jsonAndResponse<D extends Json = Json>(): Promise<[D, Response]>;
   blob(): Promise<Blob>;
   blobAndResponse(): Promise<[Blob, Response]>;
+  text(): Promise<string>;
+  textAndResponse(): Promise<[string, Response]>;
 }
 
 export type ApiCallTransform<M extends HttpMethod> =
@@ -89,6 +91,93 @@ export interface Api {
   onJsonResponse(cb: OnJsonResponse): Api;
 
   changeBaseURL(path: string): void;
+}
+
+export const buildPath = (...args: string[]) => {
+  // https://stackoverflow.com/a/46427607/1165996
+  return args
+    .map((part, i) => {
+      if (i === 0) {
+        return part.trim().replace(/[/]*$/g, '');
+      }
+
+      return part.trim().replace(/(^[/]*|[/]*$)/g, '');
+    })
+    .filter(x => x.length)
+    .join('/');
+};
+
+export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): Api => {
+  const call = <M extends HttpMethod>(path: string, method: M) => {
+    return new ApiCallImpl(buildPath(baseURL, path), method).applyTransforms(transforms);
+  };
+
+  const withTransform = <M extends HttpMethod>(t: ApiCallTransform<M>) => {
+    return api(baseURL, transforms.concat([t]));
+  };
+
+  const withBearerToken = (token: BearerToken) => {
+    return withTransform(c => c.withBearerToken(token));
+  };
+
+  const withBaseURL = (path: string) => {
+    return api(buildPath(baseURL, path), transforms);
+  };
+
+  const onResponse = (cb: OnResponse) => {
+    return withTransform(c => c.onResponse(cb));
+  };
+
+  const onJsonResponse = (cb: OnJsonResponse) => {
+    return withTransform(c => c.onJsonResponse(cb));
+  };
+
+  return {
+    call,
+    withTransform,
+    withBearerToken,
+    withBaseURL,
+    onResponse,
+    onJsonResponse,
+    get: path => call(path, HttpMethod.GET),
+    post: path => call(path, HttpMethod.POST),
+    put: path => call(path, HttpMethod.PUT),
+    patch: path => call(path, HttpMethod.PATCH),
+    delete: path => call(path, HttpMethod.DELETE),
+    head: path => call(path, HttpMethod.HEAD),
+    options: path => call(path, HttpMethod.OPTIONS),
+    changeBaseURL: path => {
+      baseURL = path;
+    },
+  };
+};
+
+export const apiCall = <M extends HttpMethod>(path: string, method: M): ApiCall<M> => {
+  return new ApiCallImpl(path, method);
+};
+
+export const get = (path: string): ApiCall<HttpMethod.GET> => apiCall(path, HttpMethod.GET);
+export const post = (path: string): ApiCall<HttpMethod.POST> => apiCall(path, HttpMethod.POST);
+export const put = (path: string): ApiCall<HttpMethod.PUT> => apiCall(path, HttpMethod.PUT);
+export const patch = (path: string): ApiCall<HttpMethod.PATCH> => apiCall(path, HttpMethod.PATCH);
+export const remove = (path: string): ApiCall<HttpMethod.DELETE> => apiCall(path, HttpMethod.DELETE);
+
+function applySerializationOptions(obj: any, options: SerializationOptions = {}) {
+  if (typeof obj !== 'object' || Array.isArray(obj)) {
+    return obj;
+  }
+
+  const output = { ...obj };
+
+  if (options?.stripEmptyStrings) {
+    for (const [key, val] of Object.entries(output)) {
+      if (val === '') {
+        delete output[key];
+      }
+    }
+  }
+
+  return output;
 }
 
 class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
@@ -296,85 +385,12 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   async blobAndResponse() {
     return this.then().then(async res => [await res.blob(), res] as [Blob, Response]);
   }
-}
 
-export const buildPath = (...args: string[]) => {
-  // https://stackoverflow.com/a/46427607/1165996
-  return args
-    .map((part, i) => {
-      if (i === 0) {
-        return part.trim().replace(/[/]*$/g, '');
-      }
-
-      return part.trim().replace(/(^[/]*|[/]*$)/g, '');
-    })
-    .filter(x => x.length)
-    .join('/');
-};
-
-export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): Api => {
-  const call = <M extends HttpMethod>(path: string, method: M) => {
-    return new ApiCallImpl(buildPath(baseURL, path), method).applyTransforms(transforms);
-  };
-
-  const withTransform = <M extends HttpMethod>(t: ApiCallTransform<M>) => {
-    return api(baseURL, transforms.concat([t]));
-  };
-
-  const withBearerToken = (token: BearerToken) => {
-    return withTransform(c => c.withBearerToken(token));
-  };
-
-  const withBaseURL = (path: string) => {
-    return api(buildPath(baseURL, path), transforms);
-  };
-
-  const onResponse = (cb: OnResponse) => {
-    return withTransform(c => c.onResponse(cb));
-  };
-
-  const onJsonResponse = (cb: OnJsonResponse) => {
-    return withTransform(c => c.onJsonResponse(cb));
-  };
-
-  return {
-    call,
-    withTransform,
-    withBearerToken,
-    withBaseURL,
-    onResponse,
-    onJsonResponse,
-    get: path => call(path, HttpMethod.GET),
-    post: path => call(path, HttpMethod.POST),
-    put: path => call(path, HttpMethod.PUT),
-    patch: path => call(path, HttpMethod.PATCH),
-    delete: path => call(path, HttpMethod.DELETE),
-    head: path => call(path, HttpMethod.HEAD),
-    options: path => call(path, HttpMethod.OPTIONS),
-    changeBaseURL: path => {
-      baseURL = path;
-    },
-  };
-};
-
-export const apiCall = <M extends HttpMethod>(path: string, method: M): ApiCall<M> => {
-  return new ApiCallImpl(path, method);
-};
-
-function applySerializationOptions(obj: any, options: SerializationOptions = {}) {
-  if (typeof obj !== 'object' || Array.isArray(obj)) {
-    return obj;
+  async text() {
+    return this.textAndResponse().then(([text]) => text);
   }
 
-  const output = { ...obj };
-
-  if (options?.stripEmptyStrings) {
-    for (const [key, val] of Object.entries(output)) {
-      if (val === '') {
-        delete output[key];
-      }
-    }
+  async textAndResponse() {
+    return this.then().then(async res => [await res.text(), res] as [string, Response]);
   }
-
-  return output;
 }
