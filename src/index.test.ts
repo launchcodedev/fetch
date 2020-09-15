@@ -3,6 +3,8 @@ import { HttpMethod, buildPath, api, apiCall } from './index';
 
 import 'cross-fetch/polyfill';
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 describe('buildings paths', () => {
   test('basic additions', () => {
     expect(buildPath('https://servalldev.com', 'api-call')).toBe('https://servalldev.com/api-call');
@@ -19,32 +21,19 @@ describe('buildings paths', () => {
 
 describe('building api calls', () => {
   test('api call build', () => {
-    expect(
-      api('//base')
-        .get('/api')
-        .build(),
-    ).toEqual({
+    expect(api('//base').get('/api').build()).toEqual({
       method: 'GET',
       path: '//base/api',
       headers: new Headers(),
     });
 
-    expect(
-      api('//base')
-        .post('/api')
-        .build(),
-    ).toEqual({
+    expect(api('//base').post('/api').build()).toEqual({
       method: 'POST',
       path: '//base/api',
       headers: new Headers(),
     });
 
-    expect(
-      api('//base')
-        .get('/api')
-        .withContentType('fake/mime')
-        .build(),
-    ).toEqual({
+    expect(api('//base').get('/api').withContentType('fake/mime').build()).toEqual({
       method: 'GET',
       path: '//base/api',
       headers: new Headers({
@@ -99,7 +88,7 @@ describe('api transforms', () => {
       }),
     });
 
-    const test2 = api('//foo').withTransform(c => c.withQuery({ e: true }));
+    const test2 = api('//foo').withTransform((c) => c.withQuery({ e: true }));
 
     expect(test2.get('api').build()).toEqual({
       method: 'GET',
@@ -109,7 +98,7 @@ describe('api transforms', () => {
   });
 
   test('method specific transform', () => {
-    const test3 = api('//foo').withTransform([HttpMethod.PUT, c => c.withQuery({ e: true })]);
+    const test3 = api('//foo').withTransform([HttpMethod.PUT, (c) => c.withQuery({ e: true })]);
 
     expect(test3.get('api').build()).toEqual({
       method: 'GET',
@@ -199,10 +188,10 @@ test('api on response', async () => {
   const { port } = server.address() as { port: number };
 
   const test = api(`http://localhost:${port}`)
-    .onResponse(res => {
+    .onResponse((res) => {
       expect(res.status).toEqual(200);
     })
-    .onJsonResponse(res => {
+    .onJsonResponse((res) => {
       expect(res).toMatchObject({
         foo: 'bar',
         baz: 'bat',
@@ -290,9 +279,7 @@ test('expect successful status', async () => {
 describe('serialization options', () => {
   test('strip empty strings', () => {
     expect(
-      apiCall('/foo', HttpMethod.GET)
-        .withQuery({ bar: 1, baz: '' }, {})
-        .build(),
+      apiCall('/foo', HttpMethod.GET).withQuery({ bar: 1, baz: '' }, {}).build(),
     ).toMatchObject({
       path: '/foo?bar=1&baz=',
     });
@@ -313,40 +300,24 @@ describe('serialization options', () => {
       body: JSON.stringify({ bar: 1 }),
     });
 
-    expect(
-      apiCall('/foo', HttpMethod.GET)
-        .withBody({ bar: 1, baz: '' })
-        .build(),
-    ).toMatchObject({
+    expect(apiCall('/foo', HttpMethod.GET).withBody({ bar: 1, baz: '' }).build()).toMatchObject({
       body: JSON.stringify({ bar: 1, baz: '' }),
     });
 
-    expect(
-      apiCall('/foo', HttpMethod.POST)
-        .withBody([1, 2, 3])
-        .build(),
-    ).toMatchObject({
+    expect(apiCall('/foo', HttpMethod.POST).withBody([1, 2, 3]).build()).toMatchObject({
       body: JSON.stringify([1, 2, 3]),
     });
   });
 
   test('form data', () => {
-    expect(
-      apiCall('/', HttpMethod.POST)
-        .withFormDataBody({ foo: 'bar' })
-        .build(),
-    ).toMatchObject({
+    expect(apiCall('/', HttpMethod.POST).withFormDataBody({ foo: 'bar' }).build()).toMatchObject({
       path: '/',
       body: expect.any(FormData),
     });
   });
 
   test('url encoded', () => {
-    expect(
-      apiCall('/', HttpMethod.POST)
-        .withURLEncodedBody({ foo: 'bar' })
-        .build(),
-    ).toMatchObject({
+    expect(apiCall('/', HttpMethod.POST).withURLEncodedBody({ foo: 'bar' }).build()).toMatchObject({
       path: '/',
       headers: new Headers({
         'content-type': 'application/x-www-form-urlencoded',

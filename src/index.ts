@@ -1,5 +1,5 @@
 import { stringify as stringifyQuery } from 'query-string';
-import { Json } from '@lcdev/ts';
+import type { Json, JsonObject } from '@lcdev/ts';
 
 import 'isomorphic-form-data';
 
@@ -103,13 +103,13 @@ export const buildPath = (...args: string[]) => {
 
       return part.trim().replace(/(^[/]*|[/]*$)/g, '');
     })
-    .filter(x => x.length)
+    .filter((x) => x.length)
     .join('/');
 };
 
 export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): Api => {
   const call = <M extends HttpMethod>(path: string, method: M) => {
-    return new ApiCallImpl(buildPath(baseURL, path), method).applyTransforms(transforms);
+    return new ApiCallImpl<M>(buildPath(baseURL, path), method).applyTransforms(transforms);
   };
 
   const withTransform = <M extends HttpMethod>(t: ApiCallTransform<M>) => {
@@ -117,7 +117,7 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
   };
 
   const withBearerToken = (token: BearerToken) => {
-    return withTransform(c => c.withBearerToken(token));
+    return withTransform((c) => c.withBearerToken(token));
   };
 
   const withBaseURL = (path: string) => {
@@ -125,11 +125,11 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
   };
 
   const onResponse = (cb: OnResponse) => {
-    return withTransform(c => c.onResponse(cb));
+    return withTransform((c) => c.onResponse(cb));
   };
 
   const onJsonResponse = (cb: OnJsonResponse) => {
-    return withTransform(c => c.onJsonResponse(cb));
+    return withTransform((c) => c.onJsonResponse(cb));
   };
 
   return {
@@ -139,14 +139,14 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
     withBaseURL,
     onResponse,
     onJsonResponse,
-    get: path => call(path, HttpMethod.GET),
-    post: path => call(path, HttpMethod.POST),
-    put: path => call(path, HttpMethod.PUT),
-    patch: path => call(path, HttpMethod.PATCH),
-    delete: path => call(path, HttpMethod.DELETE),
-    head: path => call(path, HttpMethod.HEAD),
-    options: path => call(path, HttpMethod.OPTIONS),
-    changeBaseURL: path => {
+    get: (path) => call<HttpMethod.GET>(path, HttpMethod.GET),
+    post: (path) => call(path, HttpMethod.POST),
+    put: (path) => call(path, HttpMethod.PUT),
+    patch: (path) => call(path, HttpMethod.PATCH),
+    delete: (path) => call(path, HttpMethod.DELETE),
+    head: (path) => call(path, HttpMethod.HEAD),
+    options: (path) => call(path, HttpMethod.OPTIONS),
+    changeBaseURL: (path) => {
       baseURL = path;
     },
   };
@@ -160,9 +160,13 @@ export const get = (path: string): ApiCall<HttpMethod.GET> => apiCall(path, Http
 export const post = (path: string): ApiCall<HttpMethod.POST> => apiCall(path, HttpMethod.POST);
 export const put = (path: string): ApiCall<HttpMethod.PUT> => apiCall(path, HttpMethod.PUT);
 export const patch = (path: string): ApiCall<HttpMethod.PATCH> => apiCall(path, HttpMethod.PATCH);
-export const remove = (path: string): ApiCall<HttpMethod.DELETE> => apiCall(path, HttpMethod.DELETE);
+export const remove = (path: string): ApiCall<HttpMethod.DELETE> =>
+  apiCall(path, HttpMethod.DELETE);
 
-function applySerializationOptions(obj: any, options: SerializationOptions = {}) {
+function applySerializationOptions<O extends { [k: string]: any }>(
+  obj: O,
+  options: SerializationOptions = {},
+): Partial<O> {
   if (typeof obj !== 'object' || Array.isArray(obj)) {
     return obj;
   }
@@ -197,14 +201,19 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     public body?: Json | BodyInit,
   ) {}
 
-  applyTransforms(transforms: ApiCallTransform<any>[]) {
+  applyTransforms(transforms: ApiCallTransform<HttpMethod>[]) {
     return transforms.reduce<ApiCall<Method>>((call, transform) => {
       if (Array.isArray(transform)) {
         const [method, wrap] = transform;
-        if (method === this.method) return wrap(call);
+
+        if (method === this.method) {
+          return wrap(call) as ApiCall<Method>;
+        }
+
         return call;
       }
-      return transform(call);
+
+      return transform(call) as ApiCall<Method>;
     }, this);
   }
 
@@ -250,7 +259,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     const body = new FormData();
 
     for (const [k, v] of Object.entries(data)) {
-      if (v) body.append(k, `${v}`);
+      if (v) body.append(k, v.toString());
     }
 
     return this.withBody(body, false, options);
@@ -260,14 +269,14 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     const body = new URLSearchParams();
 
     for (const [k, v] of Object.entries(data)) {
-      if (v) body.append(k, `${v}`);
+      if (v) body.append(k, v.toString());
     }
 
     return this.withContentType('application/x-www-form-urlencoded').withBody(body, false, options);
   }
 
   expectStatus(code: number) {
-    return this.onResponse(res => {
+    return this.onResponse((res) => {
       if (res.status !== code) {
         throw Object.assign(new Error(`Expected ${code} response, got ${res.status}`), {
           response: res,
@@ -277,7 +286,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   }
 
   expectSuccessStatus() {
-    return this.onResponse(res => {
+    return this.onResponse((res) => {
       if (res.status < 200 || res.status >= 300) {
         throw Object.assign(new Error(`Expected a successful response, got ${res.status}`), {
           response: res,
@@ -299,7 +308,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   build() {
     const headers = this.headers ?? new Headers();
 
-    if (this.bearerToken && this.bearerToken.token) {
+    if (this.bearerToken?.token) {
       headers.set('authorization', `Bearer ${this.bearerToken.token}`);
     }
 
@@ -320,7 +329,11 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     let body: BodyInit | undefined;
 
     if (this.body && this.contentType === 'application/json') {
-      body = JSON.stringify(applySerializationOptions(this.body, this.bodyOptions));
+      if (typeof body === 'object') {
+        body = JSON.stringify(applySerializationOptions(this.body as JsonObject, this.bodyOptions));
+      } else {
+        body = JSON.stringify(this.body);
+      }
     } else {
       body = this.body as BodyInit | undefined;
     }
@@ -344,7 +357,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
 
     const { path, ...options } = this.build();
 
-    return fetch(path, options).then(response => {
+    return fetch(path, options).then((response) => {
       return this.onResponseCbs
         .reduce((acc, cb) => acc.then(() => cb(response)), Promise.resolve())
         .then(() => response)
@@ -352,11 +365,11 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     });
   };
 
-  catch: Promise<Response>['catch'] = async onrejected => {
+  catch: Promise<Response>['catch'] = async (onrejected) => {
     return this.then().catch(onrejected);
   };
 
-  finally: Promise<Response>['finally'] = async onfinally => {
+  finally: Promise<Response>['finally'] = async (onfinally) => {
     return this.then().finally(onfinally);
   };
 
@@ -369,8 +382,8 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   }
 
   async jsonAndResponse<D extends Json>() {
-    return this.then().then(async res => {
-      const json = await res.json();
+    return this.then().then(async (res) => {
+      const json = (await res.json()) as D;
 
       for (const cb of this.onJsonResponseCbs) await cb(json, res);
 
@@ -383,7 +396,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   }
 
   async blobAndResponse() {
-    return this.then().then(async res => [await res.blob(), res] as [Blob, Response]);
+    return this.then().then(async (res) => [await res.blob(), res] as [Blob, Response]);
   }
 
   async text() {
@@ -391,6 +404,6 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   }
 
   async textAndResponse() {
-    return this.then().then(async res => [await res.text(), res] as [string, Response]);
+    return this.then().then(async (res) => [await res.text(), res] as [string, Response]);
   }
 }
