@@ -1,7 +1,10 @@
 # Fetch
 Tiny wrapper around DOM fetch for common API wrappings. Isomorphic (supports browsers and Node.js), if `fetch` is available or polyfilled.
 
-[![](https://shields.servallapps.com/npm/v/@lcdev/fetch.svg?registry_uri=https%3A%2F%2Fnpm.servalldatasystems.com)](https://npm.servalldatasystems.com/#/detail/@lcdev/fetch)
+[![Licensed under MPL 2.0](https://img.shields.io/badge/license-MPL_2.0-green.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
+[![Build Status](https://github.com/launchcodedev/fetch/workflows/CI/badge.svg)](https://github.com/launchcodedev/fetch/actions)
+[![npm](https://img.shields.io/npm/v/@lcdev/fetch.svg)](https://www.npmjs.com/package/@lcdev/fetch)
+[![BundlePhobia](https://badgen.net/bundlephobia/minzip/@lcdev/fetch)](https://bundlephobia.com/result?p=@lcdev/fetch@latest)
 
 ```bash
 yarn add @lcdev/fetch@VERSION
