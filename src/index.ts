@@ -163,15 +163,19 @@ export const patch = (path: string): ApiCall<HttpMethod.PATCH> => apiCall(path, 
 export const remove = (path: string): ApiCall<HttpMethod.DELETE> =>
   apiCall(path, HttpMethod.DELETE);
 
-function applySerializationOptions<O extends { [k: string]: any }>(
+function applySerializationOptions<O extends Json>(
   obj: O,
   options: SerializationOptions = {},
-): Partial<O> {
-  if (typeof obj !== 'object' || Array.isArray(obj)) {
+): Json {
+  if (typeof obj !== 'object') {
     return obj;
   }
 
-  const output = { ...obj };
+  if (Array.isArray(obj)) {
+    return obj.map((v) => applySerializationOptions(v, options));
+  }
+
+  const output = { ...(obj as JsonObject) };
 
   if (options?.stripEmptyStrings) {
     for (const [key, val] of Object.entries(output)) {
@@ -320,7 +324,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
 
     if (this.query) {
       path = `${this.path}?${stringifyQuery(
-        applySerializationOptions(this.query, this.queryOptions),
+        applySerializationOptions(this.query, this.queryOptions) as JsonObject,
       )}`;
     } else {
       path = this.path;
@@ -329,11 +333,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     let body: BodyInit | undefined;
 
     if (this.body && this.contentType === 'application/json') {
-      if (typeof body === 'object') {
-        body = JSON.stringify(applySerializationOptions(this.body as JsonObject, this.bodyOptions));
-      } else {
-        body = JSON.stringify(this.body);
-      }
+      body = JSON.stringify(applySerializationOptions(this.body as JsonObject, this.bodyOptions));
     } else {
       body = this.body as BodyInit | undefined;
     }
