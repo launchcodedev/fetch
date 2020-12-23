@@ -3,6 +3,12 @@ import type { Json, JsonObject } from '@lcdev/ts';
 
 import 'isomorphic-form-data';
 
+let globalFetch: typeof fetch;
+
+export function setGlobalFetch(myFetch: typeof fetch) {
+  globalFetch = myFetch;
+}
+
 export enum HttpMethod {
   GET = 'GET',
   POST = 'POST',
@@ -357,7 +363,9 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
 
     const { path, ...options } = this.build();
 
-    return fetch(path, options).then((response) => {
+    const localFetch = globalFetch ?? fetch;
+
+    return localFetch(path, options).then((response) => {
       return this.onResponseCbs
         .reduce((acc, cb) => acc.then(() => cb(response)), Promise.resolve())
         .then(() => response)

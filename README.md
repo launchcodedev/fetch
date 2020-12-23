@@ -107,5 +107,8 @@ yarn add cross-fetch@3
 ```
 
 ```typescript
-import 'cross-fetch/polyfill';
+import fetch from 'cross-fetch';
+import { setGlobalFetch } from '@lcdev/fetch';
+
+setGlobalFetch(fetch);
 ```
