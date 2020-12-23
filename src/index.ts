@@ -1,6 +1,6 @@
+/// <reference lib="dom" />
 import { stringify as stringifyQuery } from 'query-string';
 import type { Json, JsonObject } from '@lcdev/ts';
-
 import 'isomorphic-form-data';
 
 let globalFetch: typeof fetch;
