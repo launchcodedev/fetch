@@ -1,4 +1,5 @@
 import * as http from 'http';
+import * as https from 'https';
 import { HttpMethod, buildPath, api, apiCall } from './index';
 
 import 'cross-fetch/polyfill';
@@ -133,7 +134,7 @@ describe('api transforms', () => {
     });
   });
 
-  test('with base url and transfomr', () => {
+  test('with base url and transform', () => {
     const test = api('//foo').withBearerToken({ token: 'token' });
     const test1 = test.withBaseURL('/api/v1');
 
@@ -167,6 +168,40 @@ describe('api transforms', () => {
     expect(myApi.get('/api').build()).toMatchObject({
       method: 'GET',
       path: 'https://my-other-api/api',
+    });
+  });
+});
+
+describe('extra options', () => {
+  test('agent option', async () => {
+    const customAgent = new https.Agent();
+    expect(
+      apiCall('/', HttpMethod.GET).withExtraOptions({ agent: customAgent }).build(),
+    ).toMatchObject({
+      path: '/',
+      agent: customAgent,
+    });
+  });
+
+  test('multiple extra options call', async () => {
+    expect(
+      apiCall('/', HttpMethod.GET)
+        .withExtraOptions({ first: 'abc' })
+        .withExtraOptions({ second: 'def' })
+        .build(),
+    ).toMatchObject({
+      path: '/',
+      first: 'abc',
+      second: 'def',
+    });
+  });
+
+  test('extra options overwrite other builders', async () => {
+    expect(
+      apiCall('/', HttpMethod.GET).withExtraOptions({ path: '/other', method: 'POST' }).build(),
+    ).toMatchObject({
+      path: '/other',
+      method: 'POST',
     });
   });
 });

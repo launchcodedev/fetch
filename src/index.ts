@@ -34,6 +34,10 @@ export interface BearerToken {
 export type OnResponse = (r: Response) => void | Promise<void>;
 export type OnJsonResponse = (data: Json, r: Response) => void | Promise<void>;
 
+export type ExtraOptions = {
+  [option: string]: any;
+};
+
 export interface ApiCall<Method extends HttpMethod> extends Promise<Response> {
   readonly path: string;
   readonly method: Method;
@@ -59,6 +63,8 @@ export interface ApiCall<Method extends HttpMethod> extends Promise<Response> {
   withJsonBody<B extends Json>(body: B, options?: SerializationOptions): ApiCall<Method>;
   withFormDataBody<B extends Query>(data: B, options?: SerializationOptions): ApiCall<Method>;
   withURLEncodedBody<B extends Query>(data: B, options?: SerializationOptions): ApiCall<Method>;
+
+  withExtraOptions(options: ExtraOptions): ApiCall<Method>;
 
   expectStatus(code: number): ApiCall<Method>;
   expectSuccessStatus(): ApiCall<Method>;
@@ -92,6 +98,7 @@ export interface Api {
   withTransform<M extends HttpMethod>(t: ApiCallTransform<M>): Api;
   withBearerToken(token: BearerToken): Api;
   withBaseURL(path: string): Api;
+  withExtraOptions(options: ExtraOptions): Api;
 
   onResponse(cb: OnResponse): Api;
   onJsonResponse(cb: OnJsonResponse): Api;
@@ -130,6 +137,10 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
     return api(buildPath(baseURL, path), transforms);
   };
 
+  const withExtraOptions = (options: ExtraOptions) => {
+    return withTransform((c) => c.withExtraOptions(options));
+  };
+
   const onResponse = (cb: OnResponse) => {
     return withTransform((c) => c.onResponse(cb));
   };
@@ -143,6 +154,7 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
     withTransform,
     withBearerToken,
     withBaseURL,
+    withExtraOptions,
     onResponse,
     onJsonResponse,
     get: (path) => call<HttpMethod.GET>(path, HttpMethod.GET),
@@ -209,6 +221,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     public contentType?: string,
     public headers?: Headers,
     public body?: Json | BodyInit,
+    public extraOptions?: ExtraOptions,
   ) {}
 
   applyTransforms(transforms: ApiCallTransform<HttpMethod>[]) {
@@ -285,6 +298,15 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     return this.withContentType('application/x-www-form-urlencoded').withBody(body, false, options);
   }
 
+  withExtraOptions(options: ExtraOptions) {
+    this.extraOptions = {
+      ...this.extraOptions,
+      ...options,
+    };
+
+    return this;
+  }
+
   expectStatus(code: number) {
     return this.onResponse((res) => {
       if (res.status !== code) {
@@ -349,6 +371,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
       headers,
       method: this.method,
       body,
+      ...this.extraOptions,
     };
   }
 

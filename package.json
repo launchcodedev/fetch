@@ -1,7 +1,7 @@
 {
   "name": "@lcdev/fetch",
   "description": "Wrapper for DOM fetch",
-  "version": "0.1.10",
+  "version": "0.1.11-alpha.1",
   "license": "MPL-2.0",
   "sideEffects": false,
   "author": {
