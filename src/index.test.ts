@@ -244,6 +244,49 @@ test('api on response', async () => {
   server.close();
 });
 
+test('api on pre build modifies auth token', async () => {
+  const server = http
+    .createServer(({ headers }, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          headers,
+        }),
+      );
+    })
+    .listen(0);
+
+  const { port } = server.address() as { port: number };
+
+  const auth = {
+    token: 'abc',
+  };
+
+  const test = api(`http://localhost:${port}`)
+    .withBearerToken(auth)
+    .onPreBuild(() => {
+      auth.token = 'def';
+    })
+    .onResponse((res) => {
+      expect(res.status).toEqual(200);
+    })
+    .onJsonResponse((res) => {
+      expect(res).toMatchObject({
+        headers: {
+          authorization: `Bearer def`,
+        },
+      });
+    });
+
+  await test.get('/fake').json();
+  await test.patch('/fake').json();
+  await test.delete('/fake').json();
+  await test.head('/fake');
+  await test.options('/fake');
+
+  server.close();
+});
+
 test('double call api call', async () => {
   const server = http
     .createServer((_, res) => {

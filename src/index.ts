@@ -31,6 +31,7 @@ export interface BearerToken {
   token?: string;
 }
 
+export type OnPreBuild = () => void | Promise<void>;
 export type OnResponse = (r: Response) => void | Promise<void>;
 export type OnJsonResponse = (data: Json, r: Response) => void | Promise<void>;
 
@@ -69,6 +70,7 @@ export interface ApiCall<Method extends HttpMethod> extends Promise<Response> {
   expectStatus(code: number): ApiCall<Method>;
   expectSuccessStatus(): ApiCall<Method>;
 
+  onPreBuild(cb: OnPreBuild): ApiCall<Method>;
   onResponse(cb: OnResponse): ApiCall<Method>;
   onJsonResponse(cb: OnJsonResponse): ApiCall<Method>;
 
@@ -100,6 +102,7 @@ export interface Api {
   withBaseURL(path: string): Api;
   withExtraOptions(options: ExtraOptions): Api;
 
+  onPreBuild(cb: OnPreBuild): Api;
   onResponse(cb: OnResponse): Api;
   onJsonResponse(cb: OnJsonResponse): Api;
 
@@ -141,6 +144,10 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
     return withTransform((c) => c.withExtraOptions(options));
   };
 
+  const onPreBuild = (cb: OnPreBuild) => {
+    return withTransform((c) => c.onPreBuild(cb));
+  };
+
   const onResponse = (cb: OnResponse) => {
     return withTransform((c) => c.onResponse(cb));
   };
@@ -155,6 +162,7 @@ export const api = (baseURL: string, transforms: ApiCallTransform<any>[] = []): 
     withBearerToken,
     withBaseURL,
     withExtraOptions,
+    onPreBuild,
     onResponse,
     onJsonResponse,
     get: (path) => call<HttpMethod.GET>(path, HttpMethod.GET),
@@ -210,6 +218,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
   private consumed = false;
   private queryOptions?: SerializationOptions;
   private bodyOptions?: SerializationOptions;
+  private onPreBuildCbs: OnPreBuild[] = [];
   private onResponseCbs: OnResponse[] = [];
   private onJsonResponseCbs: OnJsonResponse[] = [];
 
@@ -327,6 +336,11 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     });
   }
 
+  onPreBuild(cb: OnPreBuild) {
+    this.onPreBuildCbs.push(cb);
+    return this;
+  }
+
   onResponse(cb: OnResponse) {
     this.onResponseCbs.push(cb);
     return this;
@@ -384,16 +398,20 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
 
     this.consumed = true;
 
-    const { path, ...options } = this.build();
+    return this.onPreBuildCbs
+      .reduce((acc, callback) => acc.then(callback), Promise.resolve())
+      .then(() => {
+        const { path, ...options } = this.build();
 
-    const localFetch = globalFetch ?? fetch;
+        const localFetch = globalFetch ?? fetch;
 
-    return localFetch(path, options).then((response) => {
-      return this.onResponseCbs
-        .reduce((acc, cb) => acc.then(() => cb(response)), Promise.resolve())
-        .then(() => response)
-        .then(onfulfilled, onrejected);
-    });
+        return localFetch(path, options).then((response) => {
+          return this.onResponseCbs
+            .reduce((acc, cb) => acc.then(() => cb(response)), Promise.resolve())
+            .then(() => response)
+            .then(onfulfilled, onrejected);
+        });
+      });
   };
 
   catch: Promise<Response>['catch'] = async (onrejected) => {
