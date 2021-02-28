@@ -58,6 +58,7 @@ With a `ApiCall` builder (the object returned by `apiCall`), we can chain many o
 - `withExtraOptions(options: ExtraOptions)`: escape hatch to add extra options to `fetch` while still using the builder pattern
 - `expectStatus(number)`: throw an error if the response status isn't the expected one
 - `expectSuccessStatus()`: throw an error if the response status isn't in 200 range
+- `onPreBuild(callback)`: calls your function before options are built for every `fetch`
 - `onResponse(callback)`: calls your function whenever responses are received
 - `onJsonResponse(callback)`: calls your function whenever JSON responses are received
 - `build()`: constructs options that can be passed into `fetch` directly
