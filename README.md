@@ -55,6 +55,7 @@ With a `ApiCall` builder (the object returned by `apiCall`), we can chain many o
 - `withJsonBody(object, options?: SerializationOptions)`: adds JSON request body
 - `withFormDataBody(FormData, options?: SerializationOptions)`: adds form-data request body
 - `withURLEncodedBody(object, options?: SerializationOptions)`: adds 'application/x-www-form-urlencoded' request body
+- `withExtraOptions(options: ExtraOptions)`: escape hatch to add extra options to `fetch` while still using the builder pattern
 - `expectStatus(number)`: throw an error if the response status isn't the expected one
 - `expectSuccessStatus()`: throw an error if the response status isn't in 200 range
 - `onResponse(callback)`: calls your function whenever responses are received
@@ -111,4 +112,24 @@ import fetch from 'cross-fetch';
 import { setGlobalFetch } from '@lcdev/fetch';
 
 setGlobalFetch(fetch);
+```
+
+## Client Certificates
+
+Some API servers require a client TLS certificate to authenticate against their API.
+In NodeJS, you can do this using a custom HTTPS agent that is aware of the client certificate.
+Then you can use `.withExtraOptions()` to pass the custom `agent` to the `fetch` options
+
+_Note: `agent` is a non-standard option for `node-fetch`._
+
+```typescript
+import * as https from 'https';
+
+const myApi = api('https://base-url.com')
+  .withBearerToken({ token: '...' })
+  .withExtraOptions({
+    agent: new https.Agent({
+      pfx: myPfxClientCertificate,
+    }),
+  });
 ```
