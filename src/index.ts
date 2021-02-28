@@ -399,7 +399,7 @@ class ApiCallImpl<Method extends HttpMethod> implements ApiCall<Method> {
     this.consumed = true;
 
     return this.onPreBuildCbs
-      .reduce((acc, cb) => acc.then(() => cb()), Promise.resolve())
+      .reduce((acc, callback) => acc.then(callback), Promise.resolve())
       .then(() => {
         const { path, ...options } = this.build();
 
